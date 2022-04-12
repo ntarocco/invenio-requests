@@ -10,8 +10,8 @@
 import pytest
 from jsonschema import ValidationError
 
+from invenio_requests.customizations.event_types import CommentEventType
 from invenio_requests.records import RequestEvent
-from invenio_requests.records.api import RequestEventType
 
 
 def test_request_event_jsonschema(app, db, example_request):
@@ -19,10 +19,16 @@ def test_request_event_jsonschema(app, db, example_request):
         {},
         request=example_request.model,
         request_id=example_request.number,
-        type=RequestEventType.COMMENT.value,
+        type=CommentEventType,
     )
     db.session.commit()
     assert event.schema
 
     # JSONSchema validation works.
-    pytest.raises(ValidationError, RequestEvent.create, {'garbage': {'bar': 1}})
+    with pytest.raises(ValidationError):
+        RequestEvent.create(
+            {'garbage': {'bar': 1}},
+            request=example_request.model,
+            request_id=example_request.number,
+            type=CommentEventType,
+        )

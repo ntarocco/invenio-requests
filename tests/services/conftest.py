@@ -10,15 +10,10 @@
 """Service tests."""
 
 import pytest
-from flask_principal import Identity, Need, UserNeed
 
 from invenio_requests.customizations import RequestType
 from invenio_requests.proxies import current_requests
-from invenio_requests.records.api import (
-    RequestEvent,
-    RequestEventFormat,
-    RequestEventType,
-)
+from invenio_requests.records.api import RequestEventFormat
 
 
 @pytest.fixture(scope="module")

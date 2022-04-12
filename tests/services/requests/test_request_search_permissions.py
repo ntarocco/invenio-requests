@@ -8,10 +8,8 @@
 # details.
 
 """Permission tests."""
-import copy
 
 import pytest
-from invenio_access.permissions import system_identity
 from invenio_records_resources.services.errors import PermissionDeniedError
 
 from invenio_requests.records.api import RequestEventFormat

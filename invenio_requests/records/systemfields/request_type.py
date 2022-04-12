@@ -12,11 +12,11 @@ import inspect
 from invenio_records.systemfields import SystemField
 
 from ...customizations import RequestType
-from ...proxies import current_registry
+from ...proxies import current_request_type_registry
 
 
 class RequestTypeField(SystemField):
-    """Systemfield for managing the request type."""
+    """System field for managing the request type."""
 
     def __init__(self, key="type"):
         """Constructor."""
@@ -49,7 +49,7 @@ class RequestTypeField(SystemField):
             return obj
 
         type_id = self.get_dictkey(instance)
-        obj = current_registry.lookup(type_id)
+        obj = current_request_type_registry.lookup(type_id)
         self._set_cache(instance, obj)
 
         return obj

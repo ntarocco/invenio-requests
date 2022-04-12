@@ -12,16 +12,27 @@
 
 import pytest
 
-from invenio_requests.records.api import RequestEventFormat, RequestEventType
+from invenio_requests.customizations.event_types import CommentEventType, LogEventType
+from invenio_requests.records.api import RequestEventFormat
 
 
 @pytest.fixture()
 def events_service_data():
     """Input data for the Request Events Service."""
-    return {
-        "type": RequestEventType.COMMENT.value,
-        "payload": {
-            "content": "This is a comment.",
-            "format": RequestEventFormat.HTML.value,
-        }
-    }
+    return dict(
+        comment={
+            "type": CommentEventType.type_id,
+            "payload": {
+                "content": "This is a comment.",
+                "format": RequestEventFormat.HTML.value,
+            }
+        },
+        log={
+            "type": LogEventType.type_id,
+            "payload": {
+                "content": "This is a log event.",
+                "format": RequestEventFormat.HTML.value,
+                "event": "LOG_EVENT"
+            }
+        },
+    )

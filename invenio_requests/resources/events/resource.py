@@ -24,7 +24,9 @@ from invenio_records_resources.resources import RecordResource
 from invenio_records_resources.resources.records.resource import request_headers
 from invenio_records_resources.resources.records.utils import es_preference
 
-from ...records.api import RequestEventType
+from invenio_requests.records.systemfields import event_type
+
+from ...customizations.event_types import CommentEventType
 
 
 #
@@ -49,7 +51,7 @@ class RequestCommentsResource(RecordResource):
 
     def create_url_rules(self):
         """Create the URL rules for the record resource."""
-        # Aassignment of routes should be part of the
+        # Assignment of routes should be part of the
         # Config class
         routes = self.config.routes
         return [
@@ -66,11 +68,11 @@ class RequestCommentsResource(RecordResource):
     def create(self):
         """Create a comment."""
         data = deepcopy(resource_requestctx.data) if resource_requestctx.data else {}
-        data["type"] = RequestEventType.COMMENT.value
         item = self.service.create(
             identity=g.identity,
             request_id=resource_requestctx.view_args["request_id"],
             data=data,
+            event_type=CommentEventType
         )
         return item.to_dict(), 201
 

@@ -21,6 +21,7 @@ from .dumpers import CalculatedFieldDumperExt, GrantTokensDumperExt
 from .models import RequestEventModel, RequestMetadata
 from .systemfields import (
     EntityReferenceField,
+    EventTypeField,
     ExpiredStateCalculatedField,
     IdentityField,
     RequestStateCalculatedField,
@@ -96,17 +97,6 @@ class Request(Record):
     """Whether or not the request is already expired."""
 
 
-class RequestEventType(Enum):
-    """Request Event type enum."""
-
-    COMMENT = "C"
-    REMOVED = "R"
-    ACCEPTED = "A"
-    DECLINED = "D"
-    CANCELLED = "X"
-    EXPIRED = "E"
-
-
 class RequestEventFormat(Enum):
     """Comment/content format enum."""
 
@@ -130,8 +120,8 @@ class RequestEvent(Record):
     request_id = DictField("request_id")
     """The data-layer id of the related Request."""
 
-    type = ModelField("type")
-    """The human-readable event type."""
+    type = EventTypeField("type")
+    """Request event type system field."""
 
     index = IndexField(
         "requestevents-requestevent-v1.0.0", search_alias="requestevents")

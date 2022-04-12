@@ -9,10 +9,14 @@
 
 """Request Events Service Config."""
 
-from invenio_records_resources.services import Link, RecordServiceConfig
+from invenio_records_resources.services import (
+    Link,
+    RecordServiceConfig,
+    ServiceSchemaWrapper,
+)
 from invenio_records_resources.services.records.components import DataComponent
 from invenio_records_resources.services.records.links import pagination_links
-from invenio_records_resources.services.records.results import RecordItem
+from invenio_records_resources.services.records.results import RecordItem, RecordList
 
 from ...records.api import Request, RequestEvent
 from ..configurator import ConfiguratorMixin, FromConfig
@@ -28,6 +32,33 @@ class RequestEventItem(RecordItem):
     def id(self):
         """Id property."""
         return self._record.id
+
+
+class RequestEventList(RecordList):
+    """RequestEvent result item."""
+
+    @property
+    def hits(self):
+        """Iterator over the hits."""
+        for hit in self._results:
+            # Load dump
+            record = self._service.record_cls.loads(hit.to_dict())
+
+            # Project the record
+            schema = ServiceSchemaWrapper(
+                self._service, record.type.marshmallow_schema())
+            projection = schema.dump(
+                record,
+                context=dict(
+                    identity=self._identity,
+                    record=record,
+                )
+            )
+
+            if self._links_item_tpl:
+                projection['links'] = self._links_item_tpl.expand(record)
+
+            yield projection
 
 
 class RequestEventLink(Link):
@@ -49,6 +80,7 @@ class RequestEventsServiceConfig(RecordServiceConfig, ConfiguratorMixin):
     schema = RequestEventSchema
     record_cls = RequestEvent
     result_item_cls = RequestEventItem
+    result_list_cls = RequestEventList
 
     # ResultItem configurations
     links_item = {

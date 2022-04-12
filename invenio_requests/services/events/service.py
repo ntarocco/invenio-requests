@@ -10,25 +10,31 @@
 """RequestEvents Service."""
 
 from elasticsearch_dsl import Q
+from flask_babelex import _
 from invenio_access.permissions import system_process
 from invenio_records_resources.services import RecordService, ServiceSchemaWrapper
 from invenio_records_resources.services.base.links import LinksTemplate
-from invenio_records_resources.services.uow import RecordCommitOp, unit_of_work
+from invenio_records_resources.services.uow import (
+    IndexRefreshOp,
+    RecordCommitOp,
+    RecordDeleteOp,
+    unit_of_work,
+)
 
-from ...records.api import RequestEventType
-from ..schemas import RequestEventDumpSchema
+from invenio_requests.customizations import CommentEventType
+from invenio_requests.customizations.event_types import EventType, LogEventType
+from invenio_requests.records.api import RequestEventFormat
 
 
 class RequestEventsService(RecordService):
     """Request Events service."""
 
-    @property
-    def event_dump_schema(self):
-        """Schema for creation."""
-        return ServiceSchemaWrapper(self, schema=RequestEventDumpSchema)
+    def _wrap_schema(self, schema):
+        """Wrap schema."""
+        return ServiceSchemaWrapper(self, schema)
 
     @unit_of_work()
-    def create(self, identity, request_id, data, uow=None):
+    def create(self, identity, request_id, data, event_type, uow=None):
         """Create a request event.
 
         :param request_id: Identifier of the request (data-layer id).
@@ -40,7 +46,9 @@ class RequestEventsService(RecordService):
         self.require_permission(identity, "read", request=request)
 
         # Validate data (if there are errors, .load() raises)
-        data, errors = self.schema.load(
+        schema = self._wrap_schema(event_type.marshmallow_schema())
+
+        data, errors = schema.load(
             data,
             context={"identity": identity},
         )
@@ -49,11 +57,10 @@ class RequestEventsService(RecordService):
             {},
             request=request.model,
             request_id=str(request_id),
-            type=data["type"],
+            type=event_type,
         )
         event.update(data)
         event.created_by = self._get_creator(identity)
-
         # Persist record (DB and index)
         uow.register(RecordCommitOp(event, indexer=self.indexer))
 
@@ -61,23 +68,23 @@ class RequestEventsService(RecordService):
             self,
             identity,
             event,
+            schema=schema,
             links_tpl=self.links_item_tpl,
-            schema=self.event_dump_schema
         )
 
     def read(self, identity, id_):
         """Retrieve a record."""
-        record = self._get_event(id_)
-        request = self._get_request(record.request_id)
+        event = self._get_event(id_)
+        request = self._get_request(event.request_id)
 
         self.require_permission(identity, "read", request=request)
 
         return self.result_item(
             self,
             identity,
-            record,
+            event,
+            schema=self._wrap_schema(event.type.marshmallow_schema()),
             links_tpl=self.links_item_tpl,
-            schema=self.event_dump_schema
         )
 
     @unit_of_work()
@@ -89,15 +96,16 @@ class RequestEventsService(RecordService):
             identity, "update_comment", request=request, event=event)
         self.check_revision_id(event, revision_id)
 
-        if event.type != RequestEventType.COMMENT.value:
-            raise PermissionError("You cannot update events.")
+        if event.type != CommentEventType:
+            raise PermissionError("You cannot update this event.")
 
-        data['type'] = RequestEventType.COMMENT.value
-        data, _ = self.schema.load(
+        schema = self._wrap_schema(event.type.marshmallow_schema())
+        data, _ = schema.load(
             data,
             context=dict(
                 identity=identity,
                 record=event,
+                event_type=event.type
             ),
         )
         event['payload']['content'] = data['payload']['content']
@@ -108,33 +116,44 @@ class RequestEventsService(RecordService):
             self,
             identity,
             event,
+            schema=schema,
             links_tpl=self.links_item_tpl,
-            schema=self.event_dump_schema
         )
 
     @unit_of_work()
     def delete(self, identity, id_, revision_id=None, uow=None):
-        """Delete a a comment (only comments can be deleted)."""
+        """Delete a comment (only comments can be deleted)."""
         event = self._get_event(id_)
-        request = self._get_request(event.request_id)
+        request_id = event.request_id
+        request = self._get_request(request_id)
 
         # Permissions
         self.require_permission(
             identity, "delete_comment", request=request, event=event)
         self.check_revision_id(event, revision_id)
 
-        if event.type != RequestEventType.COMMENT.value:
-            raise PermissionError("You cannot delete events.")
+        if event.type != CommentEventType:
+            raise PermissionError("You cannot delete this event.")
 
-        event["payload"]["content"] = ""
-        event.type = RequestEventType.REMOVED.value
+        # soft delete the comment
+        uow.register(RecordDeleteOp(event, self.indexer))
 
-        uow.register(
-            RecordCommitOp(event, indexer=self.indexer)
+        # create a new event for the deleted comment
+        data = dict(
+            payload=dict(
+                event="comment_deleted",
+                content=_("deleted a comment"),
+                format=RequestEventFormat.HTML.value,
+            )
         )
+
+        self.create(identity, request_id, data, LogEventType, uow=uow)
+
+        uow.register(IndexRefreshOp(index=self.record_cls.index))
         return True
 
-    def search(self, identity, request_id, params=None, es_preference=None, **kwargs):
+    def search(self, identity, request_id, params=None, es_preference=None,
+               **kwargs):
         """Search for events for a given request matching the querystring."""
         params = params or {}
         params.setdefault("sort", "oldest")
@@ -164,8 +183,7 @@ class RequestEventsService(RecordService):
                 self.config.links_search,
                 context={"request_id": request_id, "args": params},
             ),
-            links_item_tpl=self.links_item_tpl,
-            schema=self.event_dump_schema
+            links_item_tpl=self.links_item_tpl
         )
 
     # Utilities

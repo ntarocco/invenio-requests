@@ -20,17 +20,21 @@ from .actions import (
     RequestActions,
     SubmitAction,
 )
+from .event_types import CommentEventType, EventType, LogEventType
 from .request_types import RequestType
 from .states import RequestState
 
 __all__ = (
     "AcceptAction",
     "CancelAction",
+    "CommentEventType",
     "CreateAction",
     "CreateAndSubmitAction",
     "DeclineAction",
     "DeleteAction",
+    "EventType",
     "ExpireAction",
+    "LogEventType",
     "RequestAction",
     "RequestAction",
     "RequestActions",

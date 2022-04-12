@@ -7,8 +7,9 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 
 """Base class for customizable actions on requests."""
-
 from ..errors import NoSuchActionError
+from ..proxies import current_events_service
+from .event_types import LogEventType
 
 
 class RequestAction:
@@ -21,7 +22,10 @@ class RequestAction:
     """Status after execution of the action."""
 
     event_type = None
-    """Defines an event type which will be logged if defined."""
+    """Defines an event which will be logged if defined."""
+
+    log_event = True
+    """Define if the action should be logged through a `LogEventType`."""
 
     def __init__(self, request):
         """Constructor."""
@@ -47,6 +51,15 @@ class RequestAction:
         :param data: The passed input to the action.
         """
         self.request.status = self.status_to
+        if self.log_event:
+            event = LogEventType(
+                payload=dict(
+                    event=self.status_to
+                )
+            )
+            _data = dict(payload=event.payload)
+            current_events_service.create(
+                identity, self.request.id, _data, event, uow=uow)
 
 
 class RequestActions:
@@ -86,6 +99,7 @@ class CreateAction(RequestAction):
 
     status_from = None
     status_to = 'created'
+    log_event = False
 
 
 class CreateAndSubmitAction(RequestAction):
@@ -93,6 +107,7 @@ class CreateAndSubmitAction(RequestAction):
 
     status_from = None
     status_to = 'submitted'
+    log_event = False
 
 
 class DeleteAction(RequestAction):
@@ -107,6 +122,7 @@ class SubmitAction(RequestAction):
 
     status_from = ['created']
     status_to = 'submitted'
+    log_event = False
 
 
 class AcceptAction(RequestAction):

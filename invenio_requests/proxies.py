@@ -14,8 +14,13 @@ from werkzeug.local import LocalProxy
 current_requests = LocalProxy(lambda: current_app.extensions["invenio-requests"])
 """Proxy for the instantiated requests extension."""
 
-current_registry = LocalProxy(
+current_request_type_registry = LocalProxy(
     lambda: current_app.extensions["invenio-requests"].request_type_registry
+)
+"""Proxy for the instantiated request type registry."""
+
+current_event_type_registry = LocalProxy(
+    lambda: current_app.extensions["invenio-requests"].event_type_registry
 )
 """Proxy for the instantiated request type registry."""
 

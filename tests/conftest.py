@@ -39,7 +39,7 @@ from invenio_accounts.models import Role
 from invenio_accounts.testutils import login_user_via_session
 from invenio_app.factory import create_api as _create_api
 
-from invenio_requests.customizations import RequestType
+from invenio_requests.customizations import CommentEventType, LogEventType, RequestType
 
 
 @pytest.fixture(scope="module")
@@ -80,6 +80,10 @@ def app_config(app_config):
         "RECORDS_REFRESOLVER_STORE"
     ] = "invenio_jsonschemas.proxies.current_refresolver_store"
     app_config["REQUESTS_REGISTERED_TYPES"] = [RequestType()]
+    app_config["REQUESTS_REGISTERED_EVENT_TYPES"] = [
+        LogEventType(),
+        CommentEventType()
+    ]
     return app_config
 
 

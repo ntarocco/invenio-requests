@@ -11,7 +11,8 @@
 
 import copy
 
-from invenio_requests.records.api import RequestEvent, RequestEventType
+from invenio_requests.customizations.event_types import CommentEventType, LogEventType
+from invenio_requests.records.api import RequestEvent
 
 
 def assert_api_response_json(expected_json, received_json):
@@ -58,7 +59,7 @@ def test_simple_comment_flow(
         "permissions": {"can_update_comment": True,
                         "can_delete_comment": True},
         "revision_id": 1,
-        "type": RequestEventType.COMMENT.value,
+        "type": CommentEventType.type_id,
     }
     assert_api_response(response, 201, expected_json_1)
 
@@ -104,7 +105,7 @@ def test_simple_comment_flow(
         "permissions": {"can_update_comment": True,
                         "can_delete_comment": True},
         "revision_id": 2,
-        "type": RequestEventType.COMMENT.value,
+        "type": CommentEventType.type_id,
     }
     assert_api_response(response, 200, expected_json_2)
 
@@ -129,16 +130,19 @@ def test_simple_comment_flow(
     assert_api_response_json(expected_json_1, response.json["hits"]["hits"][0])
     expected_json_3 = {
         "created_by": {"user": "2"},
-        "id": comment_id,
-        "links": {
-            "self": f"https://127.0.0.1:5000/api/requests/{request_id}/comments/{comment_id}",  # noqa
+        "revision_id": 1,
+        "payload": {
+            "content": "deleted a comment",
+            "format": "html",
+            "event": "comment_deleted"
         },
-        "permissions": {"can_update_comment": True,
-                        "can_delete_comment": True},
-        "revision_id": 4,
-        "type": RequestEventType.REMOVED.value,
+        "type": LogEventType.type_id,
     }
-    assert_api_response_json(expected_json_3, response.json["hits"]["hits"][1])
+
+    res = response.json["hits"]["hits"][1]
+    assert expected_json_3["payload"] == res["payload"]
+    assert expected_json_3["created_by"] == res["created_by"]
+    assert expected_json_3["type"] == res["type"]
 
 
 def test_timeline_links(

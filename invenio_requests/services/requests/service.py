@@ -10,8 +10,6 @@
 
 """Requests service."""
 
-import re
-
 from invenio_records_resources.services import RecordService, ServiceSchemaWrapper
 from invenio_records_resources.services.uow import (
     RecordCommitOp,
@@ -20,9 +18,9 @@ from invenio_records_resources.services.uow import (
 )
 
 from ...customizations import RequestActions
+from ...customizations.event_types import CommentEventType
 from ...errors import CannotExecuteActionError
-from ...proxies import current_events_service, current_registry
-from ...records.api import RequestEventType
+from ...proxies import current_events_service, current_request_type_registry
 from ...resolvers.registry import ResolverRegistry
 from .links import RequestLinksTemplate
 
@@ -44,7 +42,7 @@ class RequestsService(RecordService):
     @property
     def request_type_registry(self):
         """Request_type_registry."""
-        return current_registry
+        return current_request_type_registry
 
     def _wrap_schema(self, schema):
         """Wrap schema."""
@@ -58,7 +56,8 @@ class RequestsService(RecordService):
         """Create a record."""
         self.require_permission(identity, "create")
 
-        # we're not using "self.schema" b/c the schema may differ per request type!
+        # we're not using "self.schema" b/c the schema may differ per
+        # request type!
         schema = self._wrap_schema(request_type.marshmallow_schema())
         data, errors = schema.load(
             data,
@@ -139,7 +138,8 @@ class RequestsService(RecordService):
 
         self.require_permission(identity, f"update", request=request)
 
-        # we're not using "self.schema" b/c the schema may differ per request type!
+        # we're not using "self.schema" b/c the schema may differ per
+        # request type!
         schema = self._wrap_schema(request.type.marshmallow_schema())
         data, _ = schema.load(
             data,
@@ -150,7 +150,8 @@ class RequestsService(RecordService):
         )
 
         # run components
-        self.run_components("update", identity, data=data, record=request, uow=uow)
+        self.run_components("update", identity, data=data, record=request,
+                            uow=uow)
 
         uow.register(RecordCommitOp(request, indexer=self.indexer))
 
@@ -212,25 +213,17 @@ class RequestsService(RecordService):
         if not action_obj.can_execute():
             raise CannotExecuteActionError(action)
 
-        # Create action event if defined
-        # Because the action may change the request's status, this has to be done
-        # before the action is executed
-        event_type = action_obj.event_type
-        if event_type is not None:
-            current_events_service.create(
-                identity, request.id, {"type": event_type}, uow=uow
-            )
-
         # Execute action and register request for persistence.
         action_obj.execute(identity, uow)
         uow.register(RecordCommitOp(request, indexer=self.indexer))
 
         # Assuming that data is just for comment payload
         if data:
-            comment_type = RequestEventType.COMMENT.value
-            current_events_service.create(
-                identity, request.id, {**data, "type": comment_type}, uow=uow
+            _data = dict(
+                payload=data.get("payload", {}),
             )
+            current_events_service.create(identity, request.id, _data, CommentEventType,
+                                          uow=uow)
 
         return self.result_item(
             self,

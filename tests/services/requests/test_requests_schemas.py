@@ -1,3 +1,15 @@
+# -*- coding: utf-8 -*-
+#
+# Copyright (C) 2022 CERN.
+# Copyright (C) 2022 Northwestern University.
+#
+# Invenio-Requests is free software; you can redistribute it and/or
+# modify it under the terms of the MIT License; see LICENSE file for more
+# details.
+
+"""Schemas tests."""
+
+
 def test_load_dump_only_field(app, identity_simple, submit_request, requests_service):
     request = submit_request(identity_simple)
     schema = requests_service._wrap_schema(request.type.marshmallow_schema())

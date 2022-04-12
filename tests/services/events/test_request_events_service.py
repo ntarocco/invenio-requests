@@ -12,20 +12,25 @@ import copy
 
 import pytest
 from invenio_access.permissions import system_identity
-from marshmallow import ValidationError
-from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.exc import NoResultFound
 
-from invenio_requests.proxies import current_requests
-from invenio_requests.records.api import RequestEvent, RequestEventType
+from invenio_requests.customizations import CommentEventType, LogEventType
+from invenio_requests.customizations.event_types import EventType
+from invenio_requests.proxies import current_event_type_registry, current_requests
+from invenio_requests.records.api import RequestEvent
 
 
-def test_schemas(app, events_service_data, example_request):
+def test_schemas(app, example_request):
     events_service = current_requests.request_events_service
     request_id = example_request.id
-    events_service_data["type"] = "INVALID"
 
-    with pytest.raises(ValidationError):
-        events_service.create(system_identity, request_id, events_service_data)
+    class InvalidEventType(EventType):
+        """Invalid event type."""
+
+        type_id = 'INVALID'
+
+    with pytest.raises(TypeError, match="Event type INVALID is not registered."):
+        events_service.create(system_identity, request_id, {}, InvalidEventType)
 
 
 def test_simple_flow(
@@ -34,14 +39,16 @@ def test_simple_flow(
     """Interact with comment events."""
     request = create_request(identity_simple)
     request_id = request.id
+    comment = events_service_data["comment"]
 
     # Create a comment
     item = request_events_service.create(
-        identity_simple, request_id, events_service_data
+        identity_simple, request_id, dict(**comment), CommentEventType
     )
     item_dict = item.to_dict()
-    assert events_service_data["type"] == item_dict["type"]
-    assert events_service_data["payload"] == {
+
+    assert comment["type"] == item_dict["type"]
+    assert comment["payload"] == {
         "content": item_dict["payload"]["content"],
         "format": item_dict["payload"]["format"],
     }
@@ -53,7 +60,7 @@ def test_simple_flow(
     assert item.to_dict() == read_item.to_dict()
 
     # Update it
-    data = read_item.to_dict()  # should be equivalent to events_service_data
+    data = read_item.to_dict()  # should be equivalent to comment
     data["payload"]["content"] = "An edited comment"
     updated_item = request_events_service.update(identity_simple, id_, data)
     assert id_ == updated_item.id
@@ -62,16 +69,23 @@ def test_simple_flow(
     # Delete it
     deleted_item = request_events_service.delete(identity_simple, id_)
     assert deleted_item is True
-    read_deleted_item = request_events_service.read(identity_simple, id_)
-    read_del_item_dict = read_deleted_item.to_dict()
-    assert id_ == read_deleted_item.id
-    assert RequestEventType.REMOVED.value == read_del_item_dict["type"]
+    # assert that the comment was deleted and cannot be read anymore
+    with pytest.raises(NoResultFound):
+        request_events_service.read(identity_simple, id_)
+    # find the newly created deleted event
+    res = request_events_service.search(
+        identity_simple, request_id, sort="newest")
+    deleted = list(res.hits)[0]
+
+    assert LogEventType.type_id == deleted["type"]
+    assert "comment_deleted" == deleted["payload"]["event"]
+    assert "deleted a comment" == deleted["payload"]["content"]
 
     # Search (batch read) events
     # Let's create a separate request with comment and make sure search is isolated
-    data = copy.deepcopy(events_service_data)
+    data = copy.deepcopy(comment)
     data["payload"]["content"] = "Another comment."
-    other_request = create_request(identity_simple, data)
+    create_request(identity_simple, data)
     # Refresh to make changes live
     RequestEvent.index.refresh()
     # then search
@@ -89,12 +103,15 @@ def test_delete_non_comment(
     # Deleting a regular comment empties content and changes type (tested above)
     # Deleting an accept/decline/cancel event removes them
     request_id = example_request.id
-    del events_service_data["payload"]
+    comment = events_service_data["comment"]
+    del comment["payload"]
 
-    for typ in (t for t in RequestEventType if t != RequestEventType.COMMENT):
-        events_service_data["type"] = typ.value
+    non_comment_types = [t for t in current_event_type_registry
+                         if t != CommentEventType]
+    for typ in non_comment_types:
+        comment["type"] = typ.type_id
         item = request_events_service.create(
-            system_identity, request_id, events_service_data
+            system_identity, request_id, comment, typ
         )
         event_id = item.id
 
@@ -102,20 +119,60 @@ def test_delete_non_comment(
             request_events_service.delete(system_identity, event_id)
 
 
-def test_update_keeps_type(identity_simple, events_service_data, example_request):
+def test_cannot_change_event_type(identity_simple, events_service_data,
+                                  example_request):
     # The `update`` service method can't be used to change the type
     events_service = current_requests.request_events_service
+    comment = events_service_data["comment"]
+
     request_id = example_request.id
-    # event type is COMMENT by default
-    item = events_service.create(identity_simple, request_id, events_service_data)
+
+    item = events_service.create(identity_simple, request_id, comment, CommentEventType)
     comment_id = item.id
-    item_dict = item.to_dict()
     data = {
-        **events_service_data,
-        "type": RequestEventType.ACCEPTED.value
+        **comment,
+        "type": LogEventType.type_id
     }
 
-    updated_item = events_service.update(identity_simple, comment_id, data)
+    updated_event = events_service.update(identity_simple, comment_id, data).to_dict()
+    # data aren't changed
+    assert updated_event["type"] == CommentEventType.type_id
 
-    updated_item_dict = updated_item.to_dict()
-    assert item_dict["type"] == updated_item_dict["type"]
+
+def test_events_are_searchable(
+        app, identity_simple, events_service_data, create_request,
+        request_events_service):
+    """Search all type of events."""
+    request = create_request(identity_simple)
+    request_id = request.id
+    comment = events_service_data["comment"]
+    log_event = events_service_data["log"]
+
+    # Create a comment
+    request_events_service.create(
+        identity_simple, request_id, comment, CommentEventType
+    )
+
+    # Create a log event
+    request_events_service.create(
+        identity_simple, request_id, log_event, LogEventType
+    )
+
+    # Refresh to make changes live
+    RequestEvent.index.refresh()
+
+    # search all events
+    searched_items = request_events_service.search(
+        identity_simple,
+        request_id,
+        size=10,
+        page=1,
+    )
+    assert 2 == searched_items.total
+
+    search_comment = list(searched_items.hits)[0]
+    assert comment["payload"] == search_comment["payload"]
+    assert search_comment["type"] == CommentEventType.type_id
+    search_log_event = list(searched_items.hits)[1]
+    assert search_log_event["payload"] == log_event["payload"]
+    assert search_log_event["type"] == LogEventType.type_id
