@@ -67,12 +67,12 @@ class TimelineCommentEvent extends Component {
     if (isUser) {
       userAvatar = (
         <RequestsFeed.Avatar
-          src={expandedCreatedBy.avatar}
+          src={expandedCreatedBy.links.avatar}
           as={Image}
           circular
         />
       );
-      user = expandedCreatedBy.full_name;
+      user = expandedCreatedBy.profile.full_name;
     }
 
     return (
@@ -140,12 +140,12 @@ class TimelineCommentEvent extends Component {
                     </Container>
                   )}
                 </Feed.Extra>
-                {(commentHasBeenEdited || commentHasBeenDeleted) &&
+                {(commentHasBeenEdited || commentHasBeenDeleted) && (
                   <Feed.Meta>
                     {commentHasBeenEdited && i18next.t("Edited")}
                     {commentHasBeenDeleted && i18next.t("Deleted")}
                   </Feed.Meta>
-                }
+                )}
               </Feed.Content>
             </RequestsFeed.Event>
           </RequestsFeed.Content>

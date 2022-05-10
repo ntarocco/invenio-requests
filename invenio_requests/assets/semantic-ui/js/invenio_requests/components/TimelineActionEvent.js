@@ -24,8 +24,8 @@ class TimelineActionEvent extends Component {
     let userAvatar,
       user = null;
     if (isUser) {
-      userAvatar = <Image src={expandedCreatedBy.avatar} avatar />;
-      user = expandedCreatedBy.full_name;
+      userAvatar = <Image src={expandedCreatedBy.links.avatar} avatar />;
+      user = expandedCreatedBy.profile.full_name;
     }
 
     return (

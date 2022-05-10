@@ -75,7 +75,7 @@ class RequestCommentsResource(RecordResource):
             request_id=resource_requestctx.view_args["request_id"],
             data=data,
             event_type=CommentEventType,
-            expand=resource_requestctx.args["expand"],
+            expand=resource_requestctx.args.get("expand", False),
         )
         return item.to_dict(), 201
 
@@ -91,7 +91,7 @@ class RequestCommentsResource(RecordResource):
         item = self.service.read(
             identity=g.identity,
             id_=resource_requestctx.view_args["comment_id"],
-            expand=resource_requestctx.args["expand"],
+            expand=resource_requestctx.args.get("expand", False),
         )
         return item.to_dict(), 200
 
@@ -107,7 +107,7 @@ class RequestCommentsResource(RecordResource):
             id_=resource_requestctx.view_args["comment_id"],
             data=resource_requestctx.data,
             revision_id=resource_requestctx.headers.get("if_match"),
-            expand=resource_requestctx.args["expand"],
+            expand=resource_requestctx.args.get("expand", False),
         )
         return item.to_dict(), 200
 
@@ -136,6 +136,6 @@ class RequestCommentsResource(RecordResource):
             request_id=resource_requestctx.view_args["request_id"],
             params=resource_requestctx.args,
             es_preference=es_preference(),
-            expand=resource_requestctx.args["expand"],
+            expand=resource_requestctx.args.get("expand", False),
         )
         return hits.to_dict(), 200

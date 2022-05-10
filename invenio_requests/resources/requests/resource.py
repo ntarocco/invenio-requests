@@ -50,7 +50,7 @@ class RequestsResource(RecordResource):
             identity=g.identity,
             params=resource_requestctx.args,
             es_preference=es_preference(),
-            expand=resource_requestctx.args["expand"],
+            expand=resource_requestctx.args.get("expand", False),
         )
         return hits.to_dict(), 200
 
@@ -62,7 +62,7 @@ class RequestsResource(RecordResource):
         item = self.service.read(
             id_=resource_requestctx.view_args["id"],
             identity=g.identity,
-            expand=resource_requestctx.args["expand"],
+            expand=resource_requestctx.args.get("expand", False),
         )
         return item.to_dict(), 200
 
@@ -78,7 +78,7 @@ class RequestsResource(RecordResource):
             id_=resource_requestctx.view_args["id"],
             identity=g.identity,
             data=resource_requestctx.data,
-            expand=resource_requestctx.args["expand"],
+            expand=resource_requestctx.args.get("expand", False),
         )
         return item.to_dict(), 200
 
@@ -104,6 +104,6 @@ class RequestsResource(RecordResource):
             id_=resource_requestctx.view_args["id"],
             action=resource_requestctx.view_args["action"],
             data=resource_requestctx.data,
-            expand=resource_requestctx.args["expand"],
+            expand=resource_requestctx.args.get("expand", False),
         )
         return item.to_dict(), 200

@@ -5,7 +5,7 @@
 # Invenio-Requests is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 
-"""Comment results fields."""
+"""Request service results."""
 
 from invenio_records_resources.services.records.results import ExpandableField
 
@@ -26,8 +26,8 @@ class EntityResolverExpandableField(ExpandableField):
         """Return the value and the service via entity resolvers."""
         self.entity_proxy = ResolverRegistry.resolve_entity_proxy(value)
         v = self.entity_proxy._parse_ref_dict_id()
-        resolver = self.entity_proxy.get_resolver()
-        service = resolver.get_service()
+        _resolver = self.entity_proxy.get_resolver()
+        service = _resolver.get_service()
         return v, service
 
     def pick(self, resolved_rec):
