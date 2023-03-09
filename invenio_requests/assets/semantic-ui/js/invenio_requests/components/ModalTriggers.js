@@ -3,15 +3,16 @@
 //
 // Invenio RDM Records is free software; you can redistribute it and/or modify it
 // under the terms of the MIT License; see LICENSE file for more details.
+
+import { AppMedia } from "@js/invenio_theme/Media";
 import { i18next } from "@translations/invenio_requests/i18next";
 import React from "react";
 import { Dropdown } from "semantic-ui-react";
 import {
   RequestAcceptButton,
-  RequestDeclineButton,
   RequestCancelButton,
+  RequestDeclineButton,
 } from "./Buttons";
-import { AppMedia } from "@js/invenio_theme/Media";
 
 const { MediaContextProvider, Media } = AppMedia;
 

@@ -4,9 +4,31 @@
 // Invenio RDM Records is free software; you can redistribute it and/or modify it
 // under the terms of the MIT License; see LICENSE file for more details.
 
+import {
+  RequestAcceptModalTrigger,
+  RequestCancelModalTrigger,
+  RequestDeclineModalTrigger,
+} from "@js/invenio_requests/components/ModalTriggers";
+import { i18next } from "@translations/invenio_requests/i18next";
 import React from "react";
 import ReactDOM from "react-dom";
+import {
+  RequestAcceptButton,
+  RequestCancelButton,
+  RequestDeclineButton,
+} from "./components/Buttons";
 import { InvenioRequestsApp } from "./InvenioRequestsApp";
+import {
+  AcceptStatus,
+  CancelStatus,
+  DeclineStatus,
+  DeleteStatus,
+  ExpireStatus,
+  LabelTypeCommunityInclusion,
+  LabelTypeCommunityInvitation,
+  LabelTypeCommunitySubmission,
+  SubmitStatus,
+} from "./request";
 import {
   TimelineAcceptEvent,
   TimelineCancelEvent,
@@ -15,26 +37,6 @@ import {
   TimelineExpireEvent,
   TimelineUnknownEvent,
 } from "./timelineEvents";
-import {
-  SubmitStatus,
-  DeleteStatus,
-  AcceptStatus,
-  DeclineStatus,
-  CancelStatus,
-  ExpireStatus,
-} from "./request";
-import { LabelTypeSubmission, LabelTypeInvitation } from "./request";
-import {
-  RequestAcceptButton,
-  RequestDeclineButton,
-  RequestCancelButton,
-} from "./components/Buttons";
-import { i18next } from "@translations/invenio_requests/i18next";
-import {
-  RequestAcceptModalTrigger,
-  RequestCancelModalTrigger,
-  RequestDeclineModalTrigger,
-} from "@js/invenio_requests/components/ModalTriggers";
 
 const requestDetailsDiv = document.getElementById("request-detail");
 const request = JSON.parse(requestDetailsDiv.dataset.record);
@@ -56,14 +58,12 @@ const overriddenComponents = {
   "RequestStatus.layout.declined": DeclineStatus,
   "RequestStatus.layout.cancelled": CancelStatus,
   "RequestStatus.layout.expired": ExpireStatus,
-  "RequestTypeLabel.layout.community-submission": LabelTypeSubmission,
-  "RequestTypeLabel.layout.community-invitation": LabelTypeInvitation,
-  "RequestActionModalTrigger.accept":
-  RequestAcceptModalTrigger,
-  "RequestActionModalTrigger.decline":
-  RequestDeclineModalTrigger,
-  "RequestActionModalTrigger.cancel":
-  RequestCancelModalTrigger,
+  "RequestTypeLabel.layout.community-submission": LabelTypeCommunitySubmission,
+  "RequestTypeLabel.layout.community-inclusion": LabelTypeCommunityInclusion,
+  "RequestTypeLabel.layout.community-invitation": LabelTypeCommunityInvitation,
+  "RequestActionModalTrigger.accept": RequestAcceptModalTrigger,
+  "RequestActionModalTrigger.decline": RequestDeclineModalTrigger,
+  "RequestActionModalTrigger.cancel": RequestCancelModalTrigger,
   "RequestActionButton.cancel": RequestCancelButton,
   "RequestActionButton.accept": RequestAcceptButton,
   "RequestActionButton.decline": RequestDeclineButton,

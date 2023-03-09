@@ -74,6 +74,7 @@ class RequestsServiceConfig(RecordServiceConfig, ConfiguratorMixin):
     # links configuration
     links_item = {
         "self": RequestLink("{+api}/requests/{id}"),
+        "self_html": RequestLink("{+ui}/requests/{id}"),
         "comments": RequestLink("{+api}/requests/{id}/comments"),
         "timeline": RequestLink("{+api}/requests/{id}/timeline"),
     }

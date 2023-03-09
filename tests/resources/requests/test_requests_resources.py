@@ -150,6 +150,7 @@ def test_simple_request_flow(app, client_logged_as, headers, example_request):
         "is_expired": False,
         "links": {
             "self": f"https://127.0.0.1:5000/api/requests/{id_}",
+            "self_html": f"https://127.0.0.1:5000/requests/{id_}",
             "timeline": f"https://127.0.0.1:5000/api/requests/{id_}/timeline",
             "comments": f"https://127.0.0.1:5000/api/requests/{id_}/comments",
             "actions": {
@@ -168,6 +169,7 @@ def test_simple_request_flow(app, client_logged_as, headers, example_request):
             "is_open": True,
             "links": {
                 "self": f"https://127.0.0.1:5000/api/requests/{id_}",
+                "self_html": f"https://127.0.0.1:5000/requests/{id_}",
                 "timeline": f"https://127.0.0.1:5000/api/requests/{id_}/timeline",
                 "comments": f"https://127.0.0.1:5000/api/requests/{id_}/comments",
                 "actions": {
@@ -188,6 +190,7 @@ def test_simple_request_flow(app, client_logged_as, headers, example_request):
             "is_open": False,
             "links": {
                 "self": f"https://127.0.0.1:5000/api/requests/{id_}",
+                "self_html": f"https://127.0.0.1:5000/requests/{id_}",
                 "timeline": f"https://127.0.0.1:5000/api/requests/{id_}/timeline",
                 "comments": f"https://127.0.0.1:5000/api/requests/{id_}/comments",
                 "actions": {},

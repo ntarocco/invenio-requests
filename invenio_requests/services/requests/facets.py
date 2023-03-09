@@ -15,8 +15,9 @@ type = TermsFacet(
     field="type",
     label=_("Type"),
     value_labels={
-        "community-submission": _("New submission"),
-        "community-invitation": _("New invitation"),
+        "community-submission": _("Draft review"),
+        "community-inclusion": _("Community inclusion"),
+        "community-invitation": _("Member invitation"),
     },
 )
 

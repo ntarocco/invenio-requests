@@ -93,9 +93,9 @@ export const RequestCancelButton = ({
   loading,
   ariaAttributes,
   size,
-  content=i18next.t("Cancel request"),
+  content = i18next.t("Cancel request"),
   className,
-  negative=true
+  negative = true,
 }) => {
   return (
     <Button
